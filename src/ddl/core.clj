@@ -48,6 +48,9 @@
   ;;Defining a set of movies to add to DB
   (def first-movies [{:movie/title "The Goonies"
                       :movie/genre "action/adventure"
+                      :movie/release-year 1986}
+                     {:movie/title "Commando3"
+                      :movie/genre "thriller/action"
                       :movie/release-year 1985}
                      {:movie/title "Commando"
                       :movie/genre "thriller/action"
@@ -62,7 +65,7 @@
   ;;Define reference to db
   (def db (d/db conn))
 
-  
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;Write query to fech movie titles data from DB
   (def all-titles-q '[:find ?movie-title
@@ -70,23 +73,99 @@
 
   ;;Quering DB for the movie title's data
   (d/q all-titles-q db)
-  
+
   ;;Find movie genre
   (d/q '[:find ?movie-genre
-        :where [_ :movie/genre ?movie-genre]] db)
-  
+         :where [_ :movie/genre ?movie-genre]] db)
+
   ;;Find movie release year
   (d/q '[:find ?movie-year
          :where [_ :movie/release-year ?movie-year]] db)
-  
+
   ;;Find movie title's that were relesae in year 1984
   (d/q '[:find ?movie-title
          :where
-         [?m :movie/release-year 1984]
+         [?m :movie/release-year 1985]
          [?m :movie/title ?movie-title]] db)
+
+  ;;Find entity-id where movie-genre "thriller/action"
+  (d/q '[:find ?e
+         :where
+         [?e :movie/genre "thriller/action"]
+         [?e :movie/release-year 1985]] db)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (d/q '[:find ?e
+         :where
+         [?e :movie/title "Commando"]] db)
+
+  (d/q '[:find ?name
+         :where
+         [?e :movie/genre "thriller/action"]
+         [?e :movie/release-year 1985]
+         [?e :movie/title ?name]] db)
+
+  (d/q '[:find ?e
+         :where
+         [?e :movie/release-year 1986]] db)
+
+  (d/q '[:find ?title ?year ?genre
+         :where
+         [?e :movie/release-year ?year]
+         [?e :movie/genre ?genre]
+         [?e :movie/title ?title]] db)
+
+
+  ;;Queries with arguments 
+  (d/q {:query '[:find ?e
+                 :in $ ?year
+                 :where
+                 [?e :movie/release-year ?year]]
+        :args [db 1986]})
+
+  (d/q {:query '[:find ?title ?year ?genre
+                 :in $ ?year
+                 :where
+                 [?e :movie/release-year ?year]
+                 [?e :movie/genre ?genre]
+                 [?e :movie/title ?title]]
+        :args [db 1986]})
+
+  (d/q {:query '[:find ?title ?year ?genre
+                 :where
+                 [?e :movie/release-year ?year]
+                 [?e :movie/genre ?genre]
+                 [?e :movie/title ?title]]
+        :args [db]})
+
+
+  (d/entity db 87960930222179)
+
+
+  ;;
+  ;; (d/pull db '[:movie/release-year :movie/title] "The Goonies")
+
+
+  (d/q '[:find ?movie-year
+         :where [_ :movie/release-year ?movie-year]] db)
+
+  (d/q '[:find ?e
+         :where [?e :movie/release-year 1984]] db)
+
+  (defn entity-exists? [db eid]
+    (try
+      (some->> eid
+               (d/datoms db :eavt)
+               (first)
+               (:e))
+      (catch Throwable _ nil)))
+
+  (d/datoms db)
+
+  (entity-exists? db :movie/genre)
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  
+
   ;;Drop your databse
   (d/delete-database client {:db-name "movies-new"})
   )
